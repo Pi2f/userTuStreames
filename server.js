@@ -174,6 +174,6 @@ app.post('/reset/:token', function (req, res) {
 
 
 
-const server = http.createServer(app).listen(config.port, function () {
+const server = http.createServer(app).listen(process.env.PORT || config.port, function () {
   console.log(`Example app listening on port ${config.port}!`)
 });
