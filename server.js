@@ -49,7 +49,6 @@ app.post('/user/authenticate', function (req, res) {
   if (req.body.mail && req.body.password) {
     user.signin(req.body.mail, req.body.password, function (err, data) {      
       if (err) {
-        console.log("err");
         res.status(200).send({err: err});
       }
       else {
@@ -63,7 +62,6 @@ app.post('/user/authenticate', function (req, res) {
               }
             } );*/           
           } else {
-            console.log("403")
             res.status(403).end();
           }
         });
@@ -104,7 +102,7 @@ app.post('/user/register', function (req, res) {
             subject: 'Activate your account',
             text: ' Thanks for subscribing to uour service !\n'
             + 'In order to complete this process you still need to activate your account ! To that end please use the following link : \n'
-            + "http://localhost:3000/#!/accountActivation?token="+token
+            + "https://tustreames.herokuapp.com/#!/accountActivation?token="+token
           };
           transporter.sendMail(mailOptions, function (err) {
             if (err) console.log("erreur transporteur : " + err);            
@@ -203,7 +201,7 @@ app.post('/forgot', function (req, res) {
         text: 'You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n' +
           'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
           //'https://' + routeurHost + '/api/reset/' + token + '\n\n' +
-          'http://localhost:3000/#!/passwordReset?token=' + token + '\n\n' + //A test !
+          'https://tustreames.herokuapp.com/#!/passwordReset?token=' + token + '\n\n' + //A test !
           'If you did not request this, please ignore this email and your password will remain unchanged.\n'
       };
       transporter.sendMail(mailOptions, function (err) {
