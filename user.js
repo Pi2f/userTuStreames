@@ -177,12 +177,10 @@ module.exports = {
         //cb();   
     },
 
-    signin: function(mail, password, cb){
-        console.log(mail+":"+password);  
+    signin: function(mail, password, cb){  
         userModel.findOne({mail: mail}, 
             function(err, user){
                 if(err){
-                    console.log("err : "+ err)
                     cb(err);
                 } else if (!user){                    
                     cb("L'utilisateur n'existe pas");
@@ -190,8 +188,7 @@ module.exports = {
                     bcrypt.compare(password, user.password, function(err, result) {                        
                         if(result === true){                            
                             cb(null, user);
-                        } else {       
-                            console.log("Password false")         
+                        } else {                                            
                             cb("Password false");
                         }                        
                     });
@@ -257,41 +254,18 @@ module.exports = {
     },
 
     setActivationToken: function(body, token, done){
-        return userModel.findOne({
+        return userModel.findOneAndUpdate({
             mail: body.mail
-          }, function (err, user) {            
-            if (!user) {
-              done('No account with that email address exists.', null, null);
-            }
-    
-            user.activationToken = token;            
-    
-            user.save(function (err) {
-              if (err) cb(err);
-              done(err, token, user);
-            });
-          });
+        }, {activationToken:token}, function(err, user) {            
+            done(err, token, user);
+        });
     },
 
     activateAccount: function(token, done){
-        userModel.findOne({
+        return userModel.findOneAndUpdate({
             activationToken: token
-            /*resetPasswordExpires: {
-              $gt: Date.now()
-            }*/
-          }, function (err, user) {
-            if (!user) {
-              done('Activation token is invalid.',null);
-            } else {
-                user.isActive = true;
-                user.activationToken = undefined;
-                //user.resetPasswordExpires = undefined;
-        
-                user.save(function (err) {              
-                  done(err, user);
-                });
-            }
-    
+        }, {isActive:true, activationToken: undefined}, function(err, user) {            
+            done(err, user);
         });
     },
 }

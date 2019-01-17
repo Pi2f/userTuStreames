@@ -49,21 +49,19 @@ app.post('/user/authenticate', function (req, res) {
   if (req.body.mail && req.body.password) {
     user.signin(req.body.mail, req.body.password, function (err, data) {      
       if (err) {
-        console.log("err");
         res.status(200).send({err: err});
       }
       else {
         user.isBlocked(data, function (err, isBlocked) {
           if (!isBlocked) {
-            /*user.isActive(data, function (err, isActive) {
-              if (isActive) {*/
+            user.isActive(data, function (err, isActive) {
+              if (isActive) {
                 res.status(200).send(JSON.stringify({user: data}));
-              /*} else {
+              } else {
                 res.status(403).end();
               }
-            } );*/           
+            } );           
           } else {
-            console.log("403")
             res.status(403).end();
           }
         });
@@ -79,6 +77,7 @@ app.post('/user/register', function (req, res) {
         error: err
       });
     } else  {
+      
       waterfall([ 
         function (done) {
           crypto.randomBytes(20, function (err, buf) {
@@ -112,9 +111,7 @@ app.post('/user/register', function (req, res) {
           });
         }
       ], function (err) {
-        if (err) {
-          console.log(err);      
-        }
+        if (err) console.log("ERREUR : "+err);
         res.status(200).end();
       });
      
@@ -149,6 +146,7 @@ app.post('/user/activateAccount/:token', function (req, res) {
       });
     }
   ], function (err) {
+    if (err) console.log("ERREUR : "+err);
     res.status(200).end();
   });
 });
@@ -212,9 +210,7 @@ app.post('/forgot', function (req, res) {
       });
     }
   ], function (err) {
-    if (err) {
-      console.log(err);      
-    }
+    if (err) console.log("ERREUR : "+err);
     res.status(200).end();
   });
 });
@@ -244,6 +240,7 @@ app.post('/reset/:token', function (req, res) {
       });
     }
   ], function (err) {
+    if (err) console.log("ERREUR : "+err);
     res.status(200).end();
   });
 });
