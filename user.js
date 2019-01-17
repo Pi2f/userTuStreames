@@ -41,7 +41,10 @@ const userSchema = new mongoose.Schema({
     },
     isActive: {
         type: Boolean,
-        default: true,
+        default: false,
+    },
+    activationToken: {
+        type: String
     },
     isBlocked: {
         type: Boolean,
@@ -132,6 +135,23 @@ module.exports = {
         });
     },
 
+    isActive: function(data, cb){
+        return userModel.findOne({
+            _userID: data._userID,
+        }, function (err, user) {
+           cb(err, user.isActive);
+        });
+    },
+
+    toggleActive: function(data, cb){
+        return userModel.findOneAndUpdate({
+            _userID: data._userID,
+        }, { isBlocked: !data.isActive },
+        function (err, user) {
+            cb(err, user);
+        });
+    },
+
     subscribe: function(data, cb){
         if(isStrongPassword(data.password) && isValidMail(data.mail)){
             checkForExistingUser(data.mail, function(result){
@@ -144,6 +164,7 @@ module.exports = {
                     });
                     userData.save(function(err){
                         if(err) cb(err);
+                        cb();
                     });
                 } else {
                     cb("Mail déjà utilisé par un autre utilisateur");
@@ -153,13 +174,15 @@ module.exports = {
         } else {
             cb("Invalide password or mail");
         }
-        cb();   
+        //cb();   
     },
 
-    signin: function(mail, password, cb){  
+    signin: function(mail, password, cb){
+        console.log(mail+":"+password);  
         userModel.findOne({mail: mail}, 
             function(err, user){
                 if(err){
+                    console.log("err : "+ err)
                     cb(err);
                 } else if (!user){                    
                     cb("L'utilisateur n'existe pas");
@@ -167,7 +190,8 @@ module.exports = {
                     bcrypt.compare(password, user.password, function(err, result) {                        
                         if(result === true){                            
                             cb(null, user);
-                        } else {                
+                        } else {       
+                            console.log("Password false")         
                             cb("Password false");
                         }                        
                     });
@@ -229,6 +253,45 @@ module.exports = {
                 });
             }
     
+        });
+    },
+
+    setActivationToken: function(body, token, done){
+        return userModel.findOne({
+            mail: body.mail
+          }, function (err, user) {            
+            if (!user) {
+              done('No account with that email address exists.', null, null);
+            }
+    
+            user.activationToken = token;            
+    
+            user.save(function (err) {
+              if (err) cb(err);
+              done(err, token, user);
+            });
           });
-    }
+    },
+
+    activateAccount: function(token, done){
+        userModel.findOne({
+            activationToken: token
+            /*resetPasswordExpires: {
+              $gt: Date.now()
+            }*/
+          }, function (err, user) {
+            if (!user) {
+              done('Activation token is invalid.',null);
+            } else {
+                user.isActive = true;
+                user.activationToken = undefined;
+                //user.resetPasswordExpires = undefined;
+        
+                user.save(function (err) {              
+                  done(err, user);
+                });
+            }
+    
+        });
+    },
 }
