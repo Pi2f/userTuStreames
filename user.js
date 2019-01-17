@@ -22,7 +22,6 @@ const userSchema = new mongoose.Schema({
     username: {
         type: String,
         required: true,
-        unique: true,
         trim: true
     },
     mail: {
@@ -45,6 +44,9 @@ const userSchema = new mongoose.Schema({
     },
     activationToken: {
         type: String
+    },
+    activationTokenExpires: {
+        type: Date
     },
     isBlocked: {
         type: Boolean,
@@ -153,28 +155,30 @@ module.exports = {
     },
 
     subscribe: function(data, cb){
-        if(isStrongPassword(data.password) && isValidMail(data.mail)){
-            checkForExistingUser(data.mail, function(result){
-                if(result == null){
-                    const userData = new userModel({
-                        username: data.username,
-                        mail: data.mail,
-                        password: data.password,
-                        _userID: uuidv4()
-                    });
-                    userData.save(function(err){
-                        if(err) cb(err);
-                        cb();
-                    });
-                } else {
-                    cb("Mail déjà utilisé par un autre utilisateur");
-                }
-            });
-            
+        if(isValidMail(data.mail)){
+            if(isStrongPassword(data.password)){
+                checkForExistingUser(data.mail, function(result){
+                    if(result == null){
+                        const userData = new userModel({
+                            username: data.username,
+                            mail: data.mail,
+                            password: data.password,
+                            _userID: uuidv4()
+                        });
+                        userData.save(function(err){
+                            if(err) cb(err);
+                            cb();
+                        });
+                    } else {
+                        cb("Mail already assigned to an other user");
+                    }
+                });                
+            } else {
+                cb("Password must have 8 characters min\n including (one special character !@#\$%\^&\*, one digit 0-9, one uppercase A-Z and one lowercase a-z)");
+            }
         } else {
-            cb("Invalide password or mail");
-        }
-        //cb();   
+            cb("Wrong mail (Example mail : my.example@host.org)")
+        }  
     },
 
     signin: function(mail, password, cb){  
@@ -183,13 +187,13 @@ module.exports = {
                 if(err){
                     cb(err);
                 } else if (!user){                    
-                    cb("L'utilisateur n'existe pas");
+                    cb("User doesn't exist");
                 } else {
                     bcrypt.compare(password, user.password, function(err, result) {                        
                         if(result === true){                            
                             cb(null, user);
                         } else {                                            
-                            cb("Password false");
+                            cb("Wrong password");
                         }                        
                     });
                 }
@@ -213,59 +217,71 @@ module.exports = {
 
 
     changePassword: function(body, token, done){
-        return userModel.findOne({
+        return userModel.findOneAndUpdate({
             mail: body.mail
+          },{
+                resetPasswordToken:token,
+                resetPasswordExpires: Date.now() + 3600000,
           }, function (err, user) {
-    
             if (!user) {
               done('No account with that email address exists.', null, null);
+            } else {
+                done(err, token, user);
             }
-    
-            user.resetPasswordToken = token;
-            user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
-    
-            user.save(function (err) {
-              if (err) cb(err);
-              done(err, token, user);
-            });
           });
     },
 
     resetPassword: function(token, password, done){
-        userModel.findOne({
+        return userModel.findOneAndUpdate({
             resetPasswordToken: token,
             resetPasswordExpires: {
               $gt: Date.now()
             }
+          }, {
+            password: password,
+            resetPasswordToken: undefined,
+            resetPasswordExpires: undefined
           }, function (err, user) {
-            if (!user) {
+            if (err) {
               done('Password reset token is invalid or has expired.',null);
             } else {
-                user.password = password;
-                user.resetPasswordToken = undefined;
-                user.resetPasswordExpires = undefined;
-        
-                user.update(function (err) {              
-                  done(err, user);
-                });
+                done(err, user);
             }
-    
         });
     },
 
     setActivationToken: function(body, token, done){
         return userModel.findOneAndUpdate({
             mail: body.mail
-        }, {activationToken:token}, function(err, user) {            
-            done(err, token, user);
+          }, { 
+              activationToken: token,
+              activationTokenExpires: Date.now() + 3600000,
+            }, function (err, user) {            
+            if (err) {
+              done('No account with that email address exists.', null, null);
+            } else {
+                done(err, token, user);
+            }  
         });
     },
 
     activateAccount: function(token, done){
         return userModel.findOneAndUpdate({
-            activationToken: token
-        }, {isActive:true, activationToken: undefined}, function(err, user) {            
-            done(err, user);
+            activationToken: token,
+            activationTokenExpires: {
+              $gt: Date.now()
+            }
+          },{ 
+            isActive: true,
+            activationToken: undefined,
+            activationTokenExpires: undefined
+          },
+          function (err,user) {
+            if (err) {
+              done('Activation token is invalid.',null);
+            } else {            
+                done(err, user);
+            }  
         });
     },
 }

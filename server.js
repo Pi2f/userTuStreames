@@ -73,8 +73,8 @@ app.post('/user/authenticate', function (req, res) {
 app.post('/user/register', function (req, res) {
   user.subscribe(req.body, function (err) {
     if (err) {
-      res.status(500).send({
-        error: err
+      res.status(200).send({
+        err: err
       });
     } else  {
       
