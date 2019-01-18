@@ -4,5 +4,4 @@ module.exports = {
     'urlDB' : 'mongodb://tu-streames1:tu-streames1@ds161224.mlab.com:61224/tustreames-user',
     // 'urlDB' : 'mongodb://database/TuStreames',
     'port' : "3001",
-    'urlPilote' : ''
 }
