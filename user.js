@@ -294,7 +294,6 @@ module.exports = {
             },
             function (err, user) {
                 if (err) {
-                    console.log(err);
                     done('Activation token is invalid.', null);
                     user.remove(function (err) {
                         if (err) {
@@ -302,11 +301,11 @@ module.exports = {
                         }
                     });
                 } else {
-                    user.updateOne(user, {
-                        isActive: true,
-                        activationToken: undefined,
-                        activationTokenExpires: undefined
-                    }, function (err) {
+                    user.updateOne({                        
+                            isActive: true,
+                            activationToken: undefined,
+                            activationTokenExpires: undefined
+                    }, {}, function (err) {
                         if (err) {
                             done(err, null);
                         }
