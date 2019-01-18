@@ -232,19 +232,23 @@ module.exports = {
     },
 
     resetPassword: function(token, password, done){
-        return userModel.findOneAndUpdate({
+        return userModel.findOne({
             resetPasswordToken: token,
             resetPasswordExpires: {
               $gt: Date.now()
             }
-          }, {
-            password: password,
-            resetPasswordToken: undefined,
-            resetPasswordExpires: undefined
           }, function (err, user) {
             if (err) {
               done('Password reset token is invalid or has expired.',null);
-            } else {
+            } else {                
+                user.password = password;
+                user.resetPasswordToken = undefined;
+                user.resetPasswordExpires = undefined;
+                user.save(function(err){
+                    if(err){
+                        done(err,null);
+                    }
+                })
                 done(err, user);
             }
         });
@@ -266,20 +270,30 @@ module.exports = {
     },
 
     activateAccount: function(token, done){
-        return userModel.findOneAndUpdate({
+        return userModel.findOne({
             activationToken: token,
             activationTokenExpires: {
               $gt: Date.now()
             }
-          },{ 
-            isActive: true,
-            activationToken: undefined,
-            activationTokenExpires: undefined
           },
           function (err,user) {
             if (err) {
               done('Activation token is invalid.',null);
-            } else {            
+              user.remove(function (err){
+                  if(err){
+                      done(err, null);
+                  }
+              });
+            } else {
+                user.update(user,{ 
+                    isActive: true,
+                    activationToken: undefined,
+                    activationTokenExpires: undefined
+                }, function(err){
+                    if(err){
+                        done(err,null);
+                    }
+                });            
                 done(err, user);
             }  
         });
