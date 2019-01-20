@@ -1,8 +1,8 @@
 {
-  "name": "user",
+  "name": "user-tustreames",
   "version": "1.0.0",
   "description": "",
-  "main": "user.js",
+  "main": "",
   "scripts": {
     "start": "node server.js"
   },

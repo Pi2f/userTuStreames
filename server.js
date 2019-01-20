@@ -6,9 +6,9 @@ const config = require('./config.js');
 const methodOverride = require('method-override');
 const helmet = require('helmet');
 const user = require('./user.js');
-var nodemailer = require('nodemailer');
-var crypto = require('crypto');
-var waterfall = require('async-waterfall');
+const mail = require('./mail.js')
+const crypto = require('crypto');
+const waterfall = require('async-waterfall');
 
 const app = express();
 
@@ -82,7 +82,7 @@ app.post('/user/register', function (req, res) {
         function (done) {
           crypto.randomBytes(20, function (err, buf) {
             if (err) console.log("erreur crypto : " + err)
-            var token = buf.toString('hex');
+            const token = buf.toString('hex');
             done(err, token);
           });
         },
@@ -90,25 +90,7 @@ app.post('/user/register', function (req, res) {
           user.setActivationToken(req.body, token, done)
         },      
         function (token, user, done) {
-          var transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-              user: 'tustreamesnoreply@gmail.com',
-              pass: 'heihei89'
-            }
-          });
-          var mailOptions = {
-            to: user.mail,
-            from: 'tustreamesnoreply@gmail.com',
-            subject: 'Activate your account',
-            text: ' Thanks for subscribing to uour service !\n'
-            + 'In order to complete this process you still need to activate your account ! To that end please use the following link : \n'
-            + "https://tustreames.herokuapp.com/#!/accountActivation?token="+token
-          };
-          transporter.sendMail(mailOptions, function (err) {
-            if (err) console.log("erreur transporteur : " + err);            
-            done(err, 'done');
-          });
+          mail.setActivationTokenMail(user,token,done);
         }
       ], function (err) {
         if (err) console.log("ERREUR : "+err);
@@ -126,24 +108,7 @@ app.post('/user/activateAccount/:token', function (req, res) {
       user.activateAccount(req.params.token, done)
     },
     function (user, done) {
-      var transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: 'tustreamesnoreply@gmail.com',
-          pass: 'heihei89'
-        }
-      });
-      var mailOptions = {
-        to: user.mail,
-        from: 'tustreamesnoreply@gmail.com',
-        subject: 'Account activated',
-        text: 'Hello,\n\n' +
-          'This is a confirmation that the account ' + user.mail + ' has just been activated.\n'
-          + 'Have fun using our services !'
-      };
-      transporter.sendMail(mailOptions, function (err) {
-        done(err);
-      });
+     mail.activateAccountMail(user,done);
     }
   ], function (err) {
     if (err) console.log("ERREUR : "+err);
@@ -177,37 +142,13 @@ app.post('/user/blocked', function (req, res) {
 app.post('/forgot', function (req, res) {
   waterfall([
     function (done) {
-      crypto.randomBytes(20, function (err, buf) {
-        if (err) console.log("erreur crypto : " + err)
-        var token = buf.toString('hex');
-        done(err, token);
-      });
+      
     },
     function (token, done) {
       user.changePassword(req.body, token, done)
     },
     function (token, user, done) {
-      var transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: 'tustreamesnoreply@gmail.com',
-          pass: 'heihei89'
-        }
-      });
-      var mailOptions = {
-        to: user.mail,
-        from: 'tustreamesnoreply@gmail.com',
-        subject: 'Password Reset',
-        text: 'You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n' +
-          'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
-          //'https://' + routeurHost + '/api/reset/' + token + '\n\n' +
-          'https://tustreames.herokuapp.com/#!/passwordReset?token=' + token + '\n\n' + //A test !
-          'If you did not request this, please ignore this email and your password will remain unchanged.\n'
-      };
-      transporter.sendMail(mailOptions, function (err) {
-        if (err) console.log("erreur transporteur : " + err);
-        done(err, 'done');
-      });
+      mail.forgotMail(user,token,done);
     }
   ], function (err) {
     if (err) console.log("ERREUR : "+err);
@@ -221,32 +162,13 @@ app.post('/reset/:token', function (req, res) {
       user.resetPassword(req.params.token, req.body.password, done)
     },
     function (user, done) {
-      var transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: 'tustreamesnoreply@gmail.com',
-          pass: 'heihei89'
-        }
-      });
-      var mailOptions = {
-        to: user.mail,
-        from: 'tustreamesnoreply@gmail.com',
-        subject: 'Your password has been changed',
-        text: 'Hello,\n\n' +
-          'This is a confirmation that the password for your account ' + user.mail + ' has just been changed.\n'
-      };
-      transporter.sendMail(mailOptions, function (err) {
-        done(err);
-      });
+      mail.reste(user,done);
     }
   ], function (err) {
     if (err) console.log("ERREUR : "+err);
     res.status(200).end();
   });
 });
-
-
-
 
 const server = http.createServer(app).listen(process.env.PORT || config.port, function () {
   console.log(`Example app listening on port ${config.port}!`)
